@@ -1,0 +1,88 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+:root {
+    --header-height: 32px;
+    --safe-area: 10px;
+
+    --xterm-bg-color: transparent;
+    --xterm-fg-color: #FFFFFF;
+    --xterm-fg-color-inverse: #000000;
+    --xterm-cursor-color: #FFFFFF;
+    --xterm-selection-bg-color: rgba(255, 255, 255, 0.3);
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --header-height: 32px;
+
+        --xterm-bg-color: transparent;
+        --xterm-fg-color: #000000;
+        --xterm-fg-color-inverse: #FFFFFF;
+        --xterm-cursor-color: #000000;
+        --xterm-selection-bg-color: rgba(0, 0, 0, 0.3);
+    }
+}
+
+#terminal-container {
+    height: calc(100vh - var(--header-height) - var(--safe-area));
+    margin-bottom: var(--safe-area);
+    width: calc(100% - (var(--safe-area) * 2));
+    margin-left: 10px;
+    margin-right: 10px;
+}
+
+#terminal {
+    height: 100%;
+    width: 100%;
+    margin: 10px;
+}
+
+#header {
+    width: 100%;
+    height: var(--header-height);
+}
+
+.xterm {
+    background-color: var(--xterm-bg-color) !important;
+    color: var(--xterm-fg-color) !important;
+}
+
+.xterm .xterm-viewport {
+    background-color: var(--xterm-bg-color) !important;
+}
+
+.xterm .composition-view {
+    background: var(--xterm-bg-color) !important;
+    color: var(--xterm-fg-color) !important;
+}
+
+.xterm .xterm-helper-textarea {
+    color: var(--xterm-fg-color) !important;
+}
+
+.xterm .xterm-cursor {
+    color: var(--xterm-cursor-color) !important;
+    background-color: var(--xterm-cursor-color) !important;
+}
+
+.xterm .xterm-selection {
+    background-color: var(--xterm-selection-bg-color) !important;
+}
+
+.xterm-rows {
+    color: var(--xterm-fg-color) !important;
+}
+
+.xterm-dom-renderer-owner-1 .xterm-rows .xterm-cursor.xterm-cursor-block:not(.xterm-cursor-blink) {
+    color: var(--xterm-fg-color-inverse) !important;
+    background-color: var(--xterm-cursor-color) !important;
+}
+
+.xterm-cursor.xterm-cursor-outline {
+    outline: 1px solid var(--xterm-cursor-color) !important;
+    background-color: transparent !important;
+}
