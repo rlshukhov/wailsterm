@@ -7,31 +7,21 @@
 package main
 
 import (
-	"bytes"
 	"embed"
 	"github.com/wailsapp/wails/v2"
+	"github.com/wailsapp/wails/v2/pkg/menu"
+	"github.com/wailsapp/wails/v2/pkg/menu/keys"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
-	"io"
 	"log"
-	"net/http"
 	"os"
 	"os/exec"
-
-	"github.com/creack/pty"
-
-	"github.com/gorilla/websocket"
+	"path/filepath"
+	"strings"
+	"syscall"
 )
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
 
 //go:embed all:frontend/dist
 var assets embed.FS
@@ -39,68 +29,68 @@ var assets embed.FS
 //go:embed build/appicon.png
 var icon []byte
 
-var ptmx *os.File
-var app *App
+var config Config
 
 func main() {
-	// Create arbitrary command.
-	c := exec.Command("/usr/bin/env", "/bin/zsh", "--login")
-	home := os.Getenv("HOME")
-	c.Env = append(os.Environ(), "TERM=xterm-256color", "LC_CTYPE=UTF-8")
-	c.Dir = home
-
-	// Start the command with a pty.
 	var err error
-	ptmx, err = pty.Start(c)
+	config, err = loadConfig()
 	if err != nil {
-		log.Println("Start pty error:", err)
-		return
-	}
-	defer func() {
-		log.Println("Close pty")
-
-		err := ptmx.Close()
-		if err != nil {
-			log.Println("Close PTY error:", err)
-		}
-
-		ptmx = nil
-	}()
-
-	// Create an instance of the app structure
-	app = NewApp(ptmx)
-
-	if err := pty.Setsize(ptmx, app.ptySize); err != nil {
-		log.Println("error resizing pty:", err)
-		return
+		panic(err)
 	}
 
-	go func() {
-		http.HandleFunc(app.wsPath+app.accessToken, sshHandler)
-		log.Fatal(http.ListenAndServe(app.wsListenAddress, nil))
-	}()
+	runApp()
+}
 
-	// Create application with options
-	err = wails.Run(&options.App{
+func runApp() {
+	app := NewApp()
+
+	appMenu := menu.NewMenu()
+	if currentPlatform() == PlatformMacOs {
+		appMenu.Append(menu.AppMenu())
+	}
+
+	if !config.Application.IsSingleInstance() {
+		FileMenu := appMenu.AddSubmenu("File")
+		FileMenu.AddText("New window", keys.CmdOrCtrl("n"), spawnNewApp)
+	}
+
+	if currentPlatform() == PlatformMacOs {
+		appMenu.Append(menu.EditMenu())
+		appMenu.Append(menu.WindowMenu())
+	}
+
+	if currentPlatform() != PlatformMacOs && config.Application.IsSingleInstance() {
+		appMenu = nil
+	}
+
+	err := wails.Run(&options.App{
 		Title:  "WailsTerm",
-		Width:  800,
-		Height: 600,
+		Width:  config.Window.Size.Width,
+		Height: config.Window.Size.Height,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		OnStartup: app.startup,
-		Bind: []interface{}{
+		Menu:      appMenu,
+		Bind: []any{
 			app,
+		},
+		EnumBind: []any{
+			PlatformsEnum,
+			TerminalThemesEnum,
+			TerminalFontsEnum,
 		},
 		Mac: &mac.Options{
 			TitleBar:             mac.TitleBarHiddenInset(),
 			WebviewIsTransparent: true,
 			WindowIsTranslucent:  true,
-			Appearance:           mac.NSAppearanceNameDarkAqua,
+			Appearance:           config.Window.Theme.AsMacAppearanceType(),
 			About: &mac.AboutInfo{
-				Title:   "WailsTerm",
-				Message: "© 2024 Lane Shukhov",
-				Icon:    icon,
+				Title: "WailsTerm",
+				Message: strings.Join([]string{
+					"© 2024 Lane Shukhov",
+				}, "\n"),
+				Icon: icon,
 			},
 		},
 		Windows: &windows.Options{
@@ -110,81 +100,36 @@ func main() {
 			DisablePinchZoom:     true,
 			BackdropType:         windows.Acrylic,
 		},
-		SingleInstanceLock: &options.SingleInstanceLock{
-			UniqueId:               "d4366eb9-0a70-48ed-a97d-8b4035efa7fc",
-			OnSecondInstanceLaunch: app.onSecondInstanceLaunch,
-		},
+		SingleInstanceLock: config.Application.AsSingleInstanceLock(app),
 	})
 
 	if err != nil {
-		println("Error:", err.Error())
+		log.Println("Error:", err.Error())
 	}
 }
 
-func sshHandler(w http.ResponseWriter, r *http.Request) {
-	if ptmx == nil {
-		return
-	}
-
-	wsConn, err := upgrader.Upgrade(w, r, nil)
+func spawnNewApp(data *menu.CallbackData) {
+	exePath, err := os.Executable()
 	if err != nil {
-		log.Println("Upgrade error:", err)
+		log.Println("Locate current executable error:", err)
 		return
 	}
-	defer func() {
-		err := wsConn.Close()
-		if err != nil {
-			log.Println("Close websocket connection error:", err)
-		}
-	}()
+	exePath, err = filepath.Abs(exePath)
+	if err != nil {
+		log.Println("Can't get current executable absolute path:", err)
+		return
+	}
 
-	go func() {
-		buf := make([]byte, 1024)
-		for {
-			if ptmx == nil {
-				return
-			}
+	cmd := exec.Command(exePath)
+	cmd.Stdin = nil
 
-			n, err := io.LimitReader(ptmx, 1024).Read(buf)
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		Setsid: true,
+	}
 
-			if err != nil {
-				if err != io.EOF {
-					log.Println("Read from PTY stdout error:", err)
-				}
-
-				app.Quit()
-
-				return
-			}
-			if n > 0 {
-				err = wsConn.WriteMessage(websocket.BinaryMessage, buf[:n])
-				if err != nil {
-					log.Println("Write to WebSocket error:", err)
-					return
-				}
-			}
-		}
-	}()
-
-	for {
-		messageType, p, err := wsConn.ReadMessage()
-
-		if err != nil {
-			if err != io.EOF {
-				log.Println("Read from WebSocket error:", err)
-			}
-			return
-		}
-		if messageType == websocket.BinaryMessage || messageType == websocket.TextMessage {
-			if ptmx == nil {
-				return
-			}
-
-			_, err = io.Copy(ptmx, bytes.NewReader(p))
-			if err != nil {
-				log.Println("Write to PTY stdin error:", err)
-				return
-			}
-		}
+	err = cmd.Start()
+	if err != nil {
+		log.Println("Can't spawn new executable copy:", err)
+		return
 	}
 }

@@ -8,84 +8,63 @@ package main
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
-	"github.com/creack/pty"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"log"
-	"os"
 )
 
-// App struct
 type App struct {
-	ctx             context.Context
-	wsListenAddress string
-	wsPath          string
-	accessToken     string
-	ptmx            *os.File
-	ptySize         *pty.Winsize
+	ctx  context.Context
+	term *term
 }
 
-func GenerateRandomBytes(n int) ([]byte, error) {
-	b := make([]byte, n)
-	_, err := rand.Read(b)
-	if err != nil {
-		return nil, err
-	}
-
-	return b, nil
-}
-
-func generateRandomString(s int) string {
-	b, err := GenerateRandomBytes(s)
-	if err != nil {
-		panic(err)
-	}
-
-	return base64.URLEncoding.EncodeToString(b)
-}
-
-func NewApp(ptmx *os.File) *App {
-	return &App{
-		wsListenAddress: "127.0.0.1:62103",
-		wsPath:          "/ws/pty/",
-		accessToken:     generateRandomString(32),
-		ptySize: &pty.Winsize{
-			Rows: 10,
-			Cols: 60,
-		},
-		ptmx: ptmx,
-	}
+func NewApp() *App {
+	return &App{}
 }
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+
+	t, err := initTerm(func() {
+		a.Quit()
+	})
+	if err != nil {
+		log.Println("Init term error:", err)
+		a.Quit()
+	}
+	a.term = t
 }
 
 func (a *App) GetWebsocketUrl() string {
-	return "ws://" + a.wsListenAddress + a.wsPath + a.accessToken
+	return a.term.GetWsUrl()
+}
+
+func (a *App) GetPlatform() Platform {
+	return currentPlatform()
+}
+
+func (a *App) GetTerminalTheme() TerminalTheme {
+	return config.Terminal.Theme
+}
+
+func (a *App) GetTerminalFontConfig() TerminalFontConfig {
+	return config.Terminal.Font
 }
 
 func (a *App) SetPtySize(rows, cols int) {
-	newRows := uint16(rows)
-	newCols := uint16(cols)
-
-	if a.ptySize.Rows == newRows && a.ptySize.Cols == newCols {
-		return
-	}
-
-	a.ptySize.Rows = newRows
-	a.ptySize.Cols = newCols
-
-	err := pty.Setsize(a.ptmx, a.ptySize)
-	if err != nil {
-		log.Println("error resizing pty:", err)
+	if err := a.term.Resize(rows, cols); err != nil {
+		log.Println("Pty resize error:", err)
 	}
 }
 
 func (a *App) Quit() {
 	log.Println("manually quit app")
+
+	err := a.term.Close()
+	if err != nil {
+		log.Println("close term error:", err)
+	}
+
 	runtime.Quit(a.ctx)
 }
 
