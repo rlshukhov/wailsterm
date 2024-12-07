@@ -13,7 +13,7 @@
   "info": {
     "companyName": "Lane Shukhov",
     "productName": "WailsTerm",
-    "productVersion": "0.1.1",
+    "productVersion": "0.1.2",
     "copyright": "Copyright © 2024 Lane Shukhov",
     "comments": "Simple terminal app powered by Wails + Xterm.js"
   }

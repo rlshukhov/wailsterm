@@ -26,7 +26,7 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
-//go:embed build/appicon.png
+//go:embed frontend/src/assets/images/logo-256.png
 var icon []byte
 
 var config Config
@@ -49,18 +49,15 @@ func runApp() {
 		appMenu.Append(menu.AppMenu())
 	}
 
+	FileMenu := appMenu.AddSubmenu("File")
 	if !config.Application.IsSingleInstance() {
-		FileMenu := appMenu.AddSubmenu("File")
 		FileMenu.AddText("New window", keys.CmdOrCtrl("n"), spawnNewApp)
 	}
+	FileMenu.AddText("Clear caches", nil, app.clearCaches)
 
 	if currentPlatform() == PlatformMacOs {
 		appMenu.Append(menu.EditMenu())
 		appMenu.Append(menu.WindowMenu())
-	}
-
-	if currentPlatform() != PlatformMacOs && config.Application.IsSingleInstance() {
-		appMenu = nil
 	}
 
 	err := wails.Run(&options.App{

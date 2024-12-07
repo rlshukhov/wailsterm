@@ -8,6 +8,7 @@ package main
 
 import (
 	"context"
+	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 	"log"
@@ -73,4 +74,8 @@ func (a *App) onSecondInstanceLaunch(secondInstanceData options.SecondInstanceDa
 
 	runtime.WindowUnminimise(a.ctx)
 	runtime.Show(a.ctx)
+}
+
+func (a *App) clearCaches(data *menu.CallbackData) {
+	runtime.WindowExecJS(a.ctx, "localStorage.clear();")
 }
