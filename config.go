@@ -166,7 +166,7 @@ func defaultConfig() Config {
 			Theme: WindowThemeAuto,
 			Size: WindowSizeConfig{
 				Width:  600,
-				Height: 400,
+				Height: 410,
 			},
 		},
 		Terminal: TerminalConfig{

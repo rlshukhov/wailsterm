@@ -10,11 +10,13 @@
 }
 
 #terminal-container, #welcome-container {
-    height: calc(100vh - var(--header-height) - var(--safe-area));
-    margin-bottom: var(--safe-area);
+    height: calc(100vh - var(--safe-area) * 2);
+    margin: var(--safe-area);
     width: calc(100% - (var(--safe-area) * 2));
-    margin-left: var(--safe-area);
-    margin-right: var(--safe-area);
+}
+
+.with-header {
+    height: calc(100vh - var(--header-height) - var(--safe-area) * 2) !important;
 }
 
 #welcome-container {
@@ -39,4 +41,8 @@
 #header {
     width: 100%;
     height: var(--header-height);
+}
+
+.hidden {
+    display: none;
 }

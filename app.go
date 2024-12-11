@@ -25,18 +25,22 @@ func NewApp() *App {
 
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+}
 
-	t, err := initTerm(func() {
+func (a *App) GetWebsocketUrl() string {
+	if a.term != nil {
+		return a.term.GetWsUrl()
+	}
+
+	var err error
+	a.term, err = initTerm(func() {
 		a.Quit()
 	})
 	if err != nil {
 		log.Println("Init term error:", err)
 		a.Quit()
 	}
-	a.term = t
-}
 
-func (a *App) GetWebsocketUrl() string {
 	return a.term.GetWsUrl()
 }
 
@@ -53,6 +57,10 @@ func (a *App) GetTerminalFontConfig() TerminalFontConfig {
 }
 
 func (a *App) SetPtySize(rows, cols int) {
+	if a.term == nil {
+		return
+	}
+
 	if err := a.term.Resize(rows, cols); err != nil {
 		log.Println("Pty resize error:", err)
 	}
@@ -61,9 +69,11 @@ func (a *App) SetPtySize(rows, cols int) {
 func (a *App) Quit() {
 	log.Println("manually quit app")
 
-	err := a.term.Close()
-	if err != nil {
-		log.Println("close term error:", err)
+	if a.term != nil {
+		err := a.term.Close()
+		if err != nil {
+			log.Println("close term error:", err)
+		}
 	}
 
 	runtime.Quit(a.ctx)

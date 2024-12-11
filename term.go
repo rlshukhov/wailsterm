@@ -17,20 +17,42 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strconv"
 	"time"
+	"unicode/utf8"
 )
 
 var errPortInUse = errors.New("port is in use")
 
-const localhost = "127.0.0.1"
+const devLocalhost = "wails.localhost"
+const productionLocalhost = "wails"
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
+	CheckOrigin: func(r *http.Request) bool { // github.com/gorilla/websocket.checkSameOrigin
+		origin := r.Header["Origin"]
+		if len(origin) == 0 {
+			return false
+		}
+		u, err := url.Parse(origin[0])
+		if err != nil {
+			return false
+		}
+
+		host, _, err := net.SplitHostPort(u.Host)
+		if err != nil {
+			host = u.Host
+
+			if err.(*net.AddrError).Err != "missing port in address" {
+				log.Println("Split host and port error:", err)
+				return false
+			}
+		}
+
+		return equalASCIIFold(host, devLocalhost) || equalASCIIFold(host, productionLocalhost)
 	},
 }
 
@@ -100,7 +122,7 @@ func initTerm(exitCallback func()) (*term, error) {
 		return nil, err
 	}
 
-	wsListenAddress := net.JoinHostPort(localhost, port)
+	wsListenAddress := net.JoinHostPort(devLocalhost, port)
 	wsPath := "/ws/pty/"
 	accessToken := generateRandomString(32)
 
@@ -227,7 +249,7 @@ func getPort() (string, error) {
 
 func checkPort(port string) error {
 	timeout := 50 * time.Millisecond
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(localhost, port), timeout)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(devLocalhost, port), timeout)
 	if err != nil {
 		return nil
 	}
@@ -240,4 +262,27 @@ func checkPort(port string) error {
 	}
 
 	return nil
+}
+
+// github.com/gorilla/websocket.equalASCIIFold
+func equalASCIIFold(s, t string) bool {
+	for s != "" && t != "" {
+		sr, size := utf8.DecodeRuneInString(s)
+		s = s[size:]
+		tr, size := utf8.DecodeRuneInString(t)
+		t = t[size:]
+		if sr == tr {
+			continue
+		}
+		if 'A' <= sr && sr <= 'Z' {
+			sr = sr + 'a' - 'A'
+		}
+		if 'A' <= tr && tr <= 'Z' {
+			tr = tr + 'a' - 'A'
+		}
+		if sr != tr {
+			return false
+		}
+	}
+	return s == t
 }

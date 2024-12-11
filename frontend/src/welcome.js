@@ -21,8 +21,9 @@ const saveFirstLaunch = () => {
     localStorage.setItem('launched', 1);
 }
 
+const addClass = document.withHeader ? ' with-header' : '';
 document.querySelector('#app').innerHTML += `
-<div id="welcome-container" class="fade-in-image">
+<div id="welcome-container" class="fade-in-image${addClass}">
     <canvas id="welcome-logo" style="width: 150px; height: 150px; margin-top: -20px; margin-bottom: -20px;"></canvas>
     <h1>Welcome to WailsTerm</h1>
     <p>Simple and lightweight terminal application</p>
@@ -54,3 +55,21 @@ document.querySelector('#welcome-logo').addEventListener('click', (e) => {
     dotLottie.setTheme(getCurrentTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)')))
     dotLottie.play()
 })
+
+setInterval(async () => {
+    const header = document.querySelector('#header');
+    if (header && (await window.isFullscreen()) && !header.classList.contains('hidden')) {
+        header.classList.add('hidden');
+
+        const welcomeContainer = document.querySelector('#welcome-container')
+        welcomeContainer.classList.remove('with-header');
+        return;
+    }
+
+    if (header && !(await window.isFullscreen()) && header.classList.contains('hidden')) {
+        header.classList.remove('hidden');
+
+        const welcomeContainer = document.querySelector('#welcome-container')
+        welcomeContainer.classList.add('with-header');
+    }
+}, 2000)

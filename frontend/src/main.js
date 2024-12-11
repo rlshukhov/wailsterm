@@ -8,14 +8,22 @@ import './style.css';
 import './app.css';
 import {main} from "../wailsjs/go/models";
 import {GetPlatform} from "../wailsjs/go/main/App";
+import {WindowIsFullscreen} from "../wailsjs/runtime";
 
 document.querySelector('#app').innerHTML = '';
 
+window.withHeader = false;
+
 const platform = await GetPlatform();
 if (platform === main.Platform.MacOs) {
+    window.withHeader = true;
     document.querySelector('#app').innerHTML += `
         <div id="header" style="--wails-draggable:drag"></div>
     `;
+}
+
+window.isFullscreen = async () => {
+    return await WindowIsFullscreen();
 }
 
 const isFirstLaunch = () => {

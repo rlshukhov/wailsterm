@@ -97,7 +97,8 @@ func runApp() {
 			DisablePinchZoom:     true,
 			BackdropType:         windows.Acrylic,
 		},
-		SingleInstanceLock: config.Application.AsSingleInstanceLock(app),
+		SingleInstanceLock:       config.Application.AsSingleInstanceLock(app),
+		EnableDefaultContextMenu: false,
 	})
 
 	if err != nil {

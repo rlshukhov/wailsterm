@@ -63,8 +63,9 @@ function applyTheme(event) {
 
 let startTheme = getCurrentTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)'))
 
+const addClass = window.withHeader ? 'with-header' : '';
 document.querySelector('#app').innerHTML += `
-    <div id="terminal-container">
+    <div id="terminal-container" class="${addClass}">
         <div id="terminal"></div>
     </div>
 `;
@@ -98,10 +99,26 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', app
 let xtermSize = fitAddon.proposeDimensions()
 SetPtySize(xtermSize.rows, xtermSize.cols).then(_ => {})
 
-setInterval(() => {
+setInterval(async () => {
     fitAddon.fit();
     let xtermSize = fitAddon.proposeDimensions()
     SetPtySize(xtermSize.rows, xtermSize.cols).then(_ => {})
+
+    const header = document.querySelector('#header');
+    if (header && (await window.isFullscreen()) && !header.classList.contains('hidden')) {
+        header.classList.add('hidden');
+
+        const terminalContainer = document.querySelector('#terminal-container')
+        terminalContainer.classList.remove('with-header');
+        return;
+    }
+
+    if (header && !(await window.isFullscreen()) && header.classList.contains('hidden')) {
+        header.classList.remove('hidden');
+
+        const terminalContainer = document.querySelector('#terminal-container')
+        terminalContainer.classList.add('with-header');
+    }
 }, 2000)
 
 const textDecoder = new TextDecoder();
