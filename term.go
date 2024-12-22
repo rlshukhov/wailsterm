@@ -26,6 +26,7 @@ import (
 
 var errPortInUse = errors.New("port is in use")
 
+const localhost = "127.0.0.1"
 const devLocalhost = "wails.localhost"
 const productionLocalhost = "wails"
 
@@ -122,7 +123,7 @@ func initTerm(exitCallback func()) (*term, error) {
 		return nil, err
 	}
 
-	wsListenAddress := net.JoinHostPort(devLocalhost, port)
+	wsListenAddress := net.JoinHostPort(localhost, port)
 	wsPath := "/ws/pty/"
 	accessToken := generateRandomString(32)
 
@@ -134,7 +135,7 @@ func initTerm(exitCallback func()) (*term, error) {
 
 	go func(t *term) {
 		http.HandleFunc(wsPath+accessToken, getSshHandler(t, exitCallback))
-		log.Fatal(http.ListenAndServe(wsListenAddress, nil))
+		log.Fatal("ws fatal: ", http.ListenAndServe(wsListenAddress, nil))
 	}(t)
 
 	return t, nil
@@ -249,7 +250,7 @@ func getPort() (string, error) {
 
 func checkPort(port string) error {
 	timeout := 50 * time.Millisecond
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(devLocalhost, port), timeout)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(localhost, port), timeout)
 	if err != nil {
 		return nil
 	}
