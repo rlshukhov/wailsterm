@@ -8,6 +8,12 @@ package main
 
 import (
 	"embed"
+	"log"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strings"
+
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/menu/keys"
@@ -15,12 +21,6 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
-	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strings"
-	"syscall"
 )
 
 //go:embed all:frontend/dist
@@ -121,9 +121,7 @@ func spawnNewApp(data *menu.CallbackData) {
 	cmd := exec.Command(exePath)
 	cmd.Stdin = nil
 
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setsid: true,
-	}
+	cmd.SysProcAttr = createSysProcAttr()
 
 	err = cmd.Start()
 	if err != nil {
