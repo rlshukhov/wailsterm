@@ -1,0 +1,60 @@
+name: Wails Build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+          - platform: "linux/amd64"
+            os: "ubuntu-latest"
+          - platform: "windows/amd64"
+            os: "windows-latest"
+          - platform: "darwin/universal"
+            os: "macos-latest"
+
+    runs-on: ${{ matrix.build.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # wails-build-action will auto zip {name}.app to {name}.app.zip in macos
+      - name: Read app name from wails.json
+        id: meta
+        run: |
+          GO_OUTPUT=$(jq -r '.name' wails.json)
+          if [[ "${{ runner.os }}" == "Windows" ]]; then
+            FILENAME="$GO_OUTPUT.exe"
+            GO_OUTPUT=$FILENAME
+          elif [[ "${{ runner.os }}" == "macOS" ]]; then
+            FILENAME="$GO_OUTPUT.app.zip"
+          else
+            FILENAME="$GO_OUTPUT"
+          fi
+          echo "GO_OUTPUT=$GO_OUTPUT" >> "$GITHUB_OUTPUT"
+          echo "FILENAME=$FILENAME" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Build wails
+        uses: dAppServer/wails-build-action@main
+        with:
+          build-name: ${{ steps.meta.outputs.GO_OUTPUT }}
+          build-platform: ${{ matrix.build.platform }}
+          package: false
+          sign: false
+          go-version: "1.23.3"
+          wails-version: "v2.9.2"
+          node-version: "20.10.0"
+
+      - name: Create Draft Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: true
+          name: WailsTerm ${{ github.ref_name }}
+          files: build/bin/${{ steps.meta.outputs.FILENAME }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
