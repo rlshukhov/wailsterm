@@ -8,15 +8,24 @@ package main
 
 import (
 	"context"
+	"log"
+
 	"github.com/wailsapp/wails/v2/pkg/menu"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
-	"log"
 )
 
 type App struct {
 	ctx  context.Context
 	term *term
+}
+
+// ClearTerminal triggers a frontend event to clear the terminal
+func (a *App) ClearTerminal(data *menu.CallbackData) {
+	if a.ctx != nil {
+		// Emit a custom event to the frontend
+		runtime.EventsEmit(a.ctx, "clear-terminal")
+	}
 }
 
 func NewApp() *App {

@@ -53,6 +53,8 @@ func runApp() {
 	if !config.Application.IsSingleInstance() {
 		FileMenu.AddText("New window", keys.CmdOrCtrl("n"), spawnNewApp)
 	}
+
+	FileMenu.AddText("Clear Terminal", keys.CmdOrCtrl("k"), app.ClearTerminal)
 	FileMenu.AddText("Clear caches", nil, app.clearCaches)
 
 	if currentPlatform() == PlatformMacOs {
