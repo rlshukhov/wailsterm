@@ -15,6 +15,11 @@
     width: calc(100% - (var(--safe-area) * 2));
 }
 
+#terminal-container {
+    position: relative;
+    overflow: hidden;
+}
+
 .with-header {
     height: calc(100vh - var(--header-height) - var(--safe-area) * 2) !important;
 }
@@ -36,6 +41,11 @@
 #terminal {
     height: 100%;
     width: 100%;
+}
+
+#terminal-container.wails-drop-target-active {
+    outline: 8px dashed rgba(59, 130, 246, 0.95);
+    outline-offset: -10px;
 }
 
 #header {

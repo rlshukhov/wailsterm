@@ -11,6 +11,7 @@ Simple translucent terminal app build with **Golang** + **WebKit** + **Vanilla J
 - [x] Auto light/dark theme support
 - [x] Configurable
 - [x] WebLinks support (open with `cmd+click` on macOS, and `ctrl+click` on Windows/Linux)
+- [x] Drag & Drop support
 
 ### TODO:
 
@@ -59,7 +60,7 @@ terminal:
 
 ## Supported OS
 
-- [x] MacOS (tested on macOS 15.1.1)
+- [x] macOS (tested on macOS 26.4.1)
 - [ ] Windows (not tested, but supported by stack)
 - [ ] Linux (not tested, but supported by stack)
 

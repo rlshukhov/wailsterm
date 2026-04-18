@@ -27,8 +27,11 @@ import (
 
 var errPortInUse = errors.New("port is in use")
 
-const devLocalhost = "wails.localhost"
-const productionLocalhost = "wails"
+const (
+	websocketHostWailsLocalhost = "wails.localhost"
+	websocketHostWails          = "wails"
+	websocketListenHost         = "127.0.0.1"
+)
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -53,7 +56,7 @@ var upgrader = websocket.Upgrader{
 			}
 		}
 
-		return equalASCIIFold(host, devLocalhost) || equalASCIIFold(host, productionLocalhost)
+		return isAllowedWebSocketHost(host)
 	},
 }
 
@@ -123,9 +126,9 @@ func initTerm(exitCallback func()) (*term, error) {
 		return nil, err
 	}
 
-	wsListenAddress := net.JoinHostPort(devLocalhost, port)
+	wsListenAddress := net.JoinHostPort(websocketListenHost, port)
 	wsPath := "/ws/pty/"
-	accessToken := generateRandomString(32)
+	accessToken := generateRandomString(128)
 
 	t := &term{
 		pty:   ptmx,
@@ -250,7 +253,7 @@ func getPort() (string, error) {
 
 func checkPort(port string) error {
 	timeout := 50 * time.Millisecond
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(devLocalhost, port), timeout)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(websocketListenHost, port), timeout)
 	if err != nil {
 		return nil
 	}
@@ -286,4 +289,15 @@ func equalASCIIFold(s, t string) bool {
 		}
 	}
 	return s == t
+}
+
+func isAllowedWebSocketHost(host string) bool {
+	switch {
+	case equalASCIIFold(host, websocketHostWailsLocalhost):
+		return true
+	case equalASCIIFold(host, websocketHostWails):
+		return true
+	default:
+		return false
+	}
 }

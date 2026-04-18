@@ -8,7 +8,7 @@ import {main} from "../wailsjs/go/models";
 import {Terminal} from "@xterm/xterm";
 import {FitAddon} from "@xterm/addon-fit";
 import {WebLinksAddon} from "@xterm/addon-web-links";
-import {BrowserOpenURL} from "../wailsjs/runtime";
+import {BrowserOpenURL, OnFileDrop, OnFileDropOff} from "../wailsjs/runtime";
 import {
     GetPlatform,
     GetTerminalFontConfig,
@@ -66,10 +66,11 @@ let startTheme = getCurrentTheme(window.matchMedia && window.matchMedia('(prefer
 
 const addClass = window.withHeader ? 'with-header' : '';
 document.querySelector('#app').innerHTML += `
-    <div id="terminal-container" class="${addClass}">
+    <div id="terminal-container" class="${addClass}" style="--wails-drop-target: drop">
         <div id="terminal"></div>
     </div>
 `;
+const terminalContainer = document.querySelector('#terminal-container');
 
 const term = new Terminal({
     cursorBlink: true,
@@ -126,6 +127,19 @@ const textDecoder = new TextDecoder();
 const socket = new WebSocket(wsUrl);
 socket.binaryType = 'arraybuffer';
 
+function quotePath(path) {
+    return `'${path.replaceAll("'", `'\\''`)}'`;
+}
+
+function sendToTerminal(data) {
+    if (socket.readyState !== WebSocket.OPEN) {
+        console.warn('websocket is not open');
+        return;
+    }
+
+    socket.send(data);
+}
+
 socket.onopen = function () {
     term.focus()
     console.log('websocket opened');
@@ -149,9 +163,32 @@ socket.onclose = function () {
 };
 
 term.onData(function (data) {
-    socket.send(data);
+    sendToTerminal(data);
 });
 
 EventsOn("clear-terminal", () => {
     term.clear();
+});
+
+OnFileDrop((x, y, paths) => {
+    terminalContainer.classList.remove('wails-drop-target-active');
+
+    if (!paths || paths.length === 0) {
+        return;
+    }
+
+    term.focus();
+    sendToTerminal(paths.map(quotePath).join(' ') + ' ');
+}, true);
+
+terminalContainer.addEventListener('dragleave', () => {
+    terminalContainer.classList.remove('wails-drop-target-active');
+});
+
+terminalContainer.addEventListener('drop', () => {
+    terminalContainer.classList.remove('wails-drop-target-active');
+});
+
+window.addEventListener('beforeunload', () => {
+    OnFileDropOff();
 });
