@@ -11,8 +11,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
-	"github.com/aymanbagabas/go-pty"
-	"github.com/gorilla/websocket"
 	"io"
 	"log"
 	"net"
@@ -22,11 +20,13 @@ import (
 	"strconv"
 	"time"
 	"unicode/utf8"
+
+	"github.com/aymanbagabas/go-pty"
+	"github.com/gorilla/websocket"
 )
 
 var errPortInUse = errors.New("port is in use")
 
-const localhost = "127.0.0.1"
 const devLocalhost = "wails.localhost"
 const productionLocalhost = "wails"
 
@@ -123,7 +123,7 @@ func initTerm(exitCallback func()) (*term, error) {
 		return nil, err
 	}
 
-	wsListenAddress := net.JoinHostPort(localhost, port)
+	wsListenAddress := net.JoinHostPort(devLocalhost, port)
 	wsPath := "/ws/pty/"
 	accessToken := generateRandomString(32)
 
@@ -250,7 +250,7 @@ func getPort() (string, error) {
 
 func checkPort(port string) error {
 	timeout := 50 * time.Millisecond
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(localhost, port), timeout)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(devLocalhost, port), timeout)
 	if err != nil {
 		return nil
 	}

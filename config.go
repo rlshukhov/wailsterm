@@ -7,16 +7,17 @@
 package main
 
 import (
-	"dario.cat/mergo"
 	"fmt"
-	"github.com/wailsapp/wails/v2/pkg/options"
-	"github.com/wailsapp/wails/v2/pkg/options/mac"
-	"gopkg.in/yaml.v3"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"dario.cat/mergo"
+	"github.com/wailsapp/wails/v2/pkg/options"
+	"github.com/wailsapp/wails/v2/pkg/options/mac"
+	"gopkg.in/yaml.v3"
 )
 
 type ConfigVersion int
@@ -148,20 +149,35 @@ type Config struct {
 
 func defaultConfig() Config {
 	singleInstance := true
-
+	shellConfig := ShellConfig{
+		Path: "/usr/bin/env",
+		Args: []string{"/bin/zsh", "--login"},
+		Envs: []ShellEnvConfig{
+			{Name: "TERM", Value: "xterm-256color"},
+			{Name: "LC_CTYPE", Value: "UTF-8"},
+		},
+	}
+	if currentPlatform() == PlatformWindows {
+		systemRoot := os.Getenv("SystemRoot")
+		if systemRoot == "" {
+			systemRoot = "c:/windows"
+		}
+		shellConfig.Path = filepath.Join(systemRoot, "System32/cmd.exe")
+		shellConfig.Args = []string{"/k"}
+	} else if currentPlatform() == PlatformLinux {
+		if _, err := os.Stat("/bin/bash"); os.IsNotExist(err) {
+			shellConfig.Path = "/bin/sh"
+		} else {
+			shellConfig.Path = "/bin/bash"
+		}
+		shellConfig.Args = []string{}
+	}
 	return Config{
 		Version: CurrentConfigVersion,
 		Application: ApplicationConfig{
 			SingleInstance: &singleInstance,
 		},
-		Shell: ShellConfig{
-			Path: "/usr/bin/env",
-			Args: []string{"/bin/zsh", "--login"},
-			Envs: []ShellEnvConfig{
-				{Name: "TERM", Value: "xterm-256color"},
-				{Name: "LC_CTYPE", Value: "UTF-8"},
-			},
-		},
+		Shell: shellConfig,
 		Window: WindowConfig{
 			Theme: WindowThemeAuto,
 			Size: WindowSizeConfig{

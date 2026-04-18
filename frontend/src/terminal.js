@@ -17,6 +17,7 @@ import {
     SetPtySize
 } from "../wailsjs/go/main/App";
 import '../node_modules/@xterm/xterm/css/xterm.css';
+import {EventsOn} from "../wailsjs/runtime";
 
 const wsUrl = await GetWebsocketUrl();
 
@@ -149,4 +150,8 @@ socket.onclose = function () {
 
 term.onData(function (data) {
     socket.send(data);
+});
+
+EventsOn("clear-terminal", () => {
+    term.clear();
 });
