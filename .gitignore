@@ -2,3 +2,6 @@ build/bin
 node_modules
 frontend/dist
 /.idea/
+/wailsterm
+/.gocache
+.DS_Store

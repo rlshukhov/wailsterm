@@ -69,6 +69,10 @@ func runApp() {
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
+		DragAndDrop: &options.DragAndDrop{
+			EnableFileDrop:     true,
+			DisableWebViewDrop: true,
+		},
 		OnStartup: app.startup,
 		Menu:      appMenu,
 		Bind: []any{

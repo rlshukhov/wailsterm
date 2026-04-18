@@ -19,13 +19,13 @@ export namespace keys {
 
 export namespace main {
 	
+	export enum Platform {
+	    Linux = "linux",
+	    MacOs = "darwin",
+	    Windows = "windows",
+	}
 	export enum TerminalFontFamily {
 	    FiraCode = "FiraCode",
-	}
-	export enum Platform {
-	    MacOs = "darwin",
-	    Linux = "linux",
-	    Windows = "windows",
 	}
 	export enum TerminalTheme {
 	    OneHalf = "OneHalf",

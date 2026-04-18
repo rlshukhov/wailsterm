@@ -27,8 +27,7 @@ import (
 
 var errPortInUse = errors.New("port is in use")
 
-const devLocalhost = "wails.localhost"
-const productionLocalhost = "wails"
+const websocketHost = "wails.localhost"
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
@@ -53,7 +52,7 @@ var upgrader = websocket.Upgrader{
 			}
 		}
 
-		return equalASCIIFold(host, devLocalhost) || equalASCIIFold(host, productionLocalhost)
+		return equalASCIIFold(host, websocketHost)
 	},
 }
 
@@ -123,7 +122,7 @@ func initTerm(exitCallback func()) (*term, error) {
 		return nil, err
 	}
 
-	wsListenAddress := net.JoinHostPort(devLocalhost, port)
+	wsListenAddress := net.JoinHostPort(websocketHost, port)
 	wsPath := "/ws/pty/"
 	accessToken := generateRandomString(32)
 
@@ -250,7 +249,7 @@ func getPort() (string, error) {
 
 func checkPort(port string) error {
 	timeout := 50 * time.Millisecond
-	conn, err := net.DialTimeout("tcp", net.JoinHostPort(devLocalhost, port), timeout)
+	conn, err := net.DialTimeout("tcp", net.JoinHostPort(websocketHost, port), timeout)
 	if err != nil {
 		return nil
 	}
